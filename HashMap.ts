@@ -82,7 +82,7 @@ export default class HashMap<K, V> {
   }
 
   //内容
-  table: HashMapNode<K, V>;
+  table: HashMapNode<K, V>[];
   // TODO
   //entrySet: Set<Map<K, V>>;
 
@@ -117,6 +117,11 @@ export default class HashMap<K, V> {
     return this.size === 0;
   }
 
+  public get(key: Object): V {
+    let e: HashMapNode<K, V>;
+    return (e = this.getNode(HashMap.hash(key), key)) === null ? null : e.value;
+  }
+
   getNode(hash: number, key: Object): HashMapNode<K, V> {
     let tab: HashMapNode<K, V>[];
     let first: HashMapNode<K, V>;
@@ -129,8 +134,9 @@ export default class HashMap<K, V> {
         ((k = first.key) == key || (key != null && key === k)))
         return first;
       if ((e = first.next) != null) {
-        if (first instanceof TreeNode)
-          return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+        // TODO red-black tree
+        // if (first instanceof TreeNode)
+        //   return (first as TreeNode<K,V>).getTreeNode(hash, key);
         do {
           if (e.hash == hash &&
             ((k = e.key) == key || (key != null && key === k)))
@@ -141,12 +147,142 @@ export default class HashMap<K, V> {
     return null;
   }
 
-  public get(key: Object): V {
-    let e: HashMapNode<K, V>;
-    return (e = this.getNode(HashMap.hash(key), key)) === null ? null : e.value;
+  public containsKey(key: Object): boolean {
+    return this.getNode(HashMap.hash(key), key) !== null;
   }
+
+  public put(key: K, value: V): V {
+    return this.putVal(HashMap.hash(key), key, value, false, true);
+  }
+
+  putVal(hash: number, key: K, value: V, onlyIfAbsent: boolean, evict: boolean): V {
+    let tab: HashMapNode<K,V>[]; let p: HashMapNode<K,V>;
+    let n: number, i: number;
+    if ((tab = this.table) == null || (n = tab.length) == 0)
+      n = (tab = this.resize()).length;
+    if ((p = tab[i = (n - 1) & hash]) == null)
+      tab[i] = this.newNode(hash, key, value, null);
+    else {
+      let e: HashMapNode<K,V>;
+      let k: K;
+      if (p.hash == hash &&
+        ((k = p.key) == key || (key != null && key === k )))
+        e = p;
+      // else if (p instanceof TreeNode)
+      //   e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+    else {
+        for (let binCount: number = 0; ; ++binCount) {
+          if ((e = p.next) == null) {
+            p.next = this.newNode(hash, key, value, null);
+            // if (binCount >= HashMap.TREEIFY_THRESHOLD - 1) // -1 for 1st
+            //   treeifyBin(tab, hash);
+            break;
+          }
+          if (e.hash == hash &&
+            ((k = e.key) == key || (key != null && key === k)))
+            break;
+          p = e;
+        }
+      }
+      if (e != null) { // existing mapping for key
+        const oldValue: V = e.value;
+        if (!onlyIfAbsent || oldValue == null)
+          e.value = value;
+        this.afterNodeAccess(e);
+        return oldValue;
+      }
+    }
+    ++this.modCount;
+    if (++this.size > this.threshold)
+      this.resize();
+    this.afterNodeInsertion(evict);
+    return null;
+  }
+
+  resize(): HashMapNode<K, V>[] {
+    const oldTab: HashMapNode<K, V>[] = this.table;
+    let oldCap: number = (oldTab == null) ? 0 : oldTab.length;
+    let oldThr: number = this.threshold;
+    let newCap: number, newThr: number = 0;
+    if (oldCap > 0) {
+      if (oldCap >= HashMap.MAXIMUM_CAPACITY) {
+        this.threshold = Number.MAX_VALUE;
+        return oldTab;
+      }
+      else if ((newCap = oldCap << 1) < HashMap.MAXIMUM_CAPACITY &&
+        oldCap >= HashMap.DEFAULT_INITIAL_CAPACITY)
+        newThr = oldThr << 1; // double threshold
+    }
+    else if (oldThr > 0) // initial capacity was placed in threshold
+      newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+      newCap = HashMap.DEFAULT_INITIAL_CAPACITY;
+      newThr = (HashMap.DEFAULT_LOAD_FACTOR * HashMap.DEFAULT_INITIAL_CAPACITY) as number;
+    }
+    if (newThr == 0) {
+      let ft: number = newCap * this.loadFactor as number;
+      let newThr: number = (newCap < HashMap.MAXIMUM_CAPACITY && ft < HashMap.MAXIMUM_CAPACITY ?
+        ft : Number.MAX_VALUE);
+    }
+    this.threshold = newThr;
+    const newTab: HashMapNode<K, V>[] = new HashMapNode[newCap];
+    this.table = newTab;
+    if (oldTab != null) {
+      for (let j: number = 0; j < oldCap; ++j) {
+        let e: HashMapNode<K, V>;
+        if ((e = oldTab[j]) != null) {
+          oldTab[j] = null;
+          if (e.next == null)
+            newTab[e.hash & (newCap - 1)] = e;
+          // else if (e instanceof TreeNode)
+          //   ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+        else { // preserve order
+            let loHead: HashMapNode<K, V> = null, loTail: HashMapNode<K, V> = null;
+            let hiHead: HashMapNode<K, V> = null, hiTail: HashMapNode<K, V> = null;
+            let next: HashMapNode<K, V>;
+            do {
+              next = e.next;
+              if ((e.hash & oldCap) == 0) {
+                if (loTail == null)
+                  loHead = e;
+                else
+                  loTail.next = e;
+                loTail = e;
+              }
+              else {
+                if (hiTail == null)
+                  hiHead = e;
+                else
+                  hiTail.next = e;
+                hiTail = e;
+              }
+            } while ((e = next) != null);
+            if (loTail != null) {
+              loTail.next = null;
+              newTab[j] = loHead;
+            }
+            if (hiTail != null) {
+              hiTail.next = null;
+              newTab[j + oldCap] = hiHead;
+            }
+          }
+        }
+      }
+    }
+    return newTab;
+  }
+
+  newNode(hash: number, key: K, value: V, next: HashMapNode<K, V>): HashMapNode<K, V> {
+    return new HashMapNode<K, V>(hash, key, value, next);
+  }
+
+  // Callbacks to allow LinkedHashMap post-actions
+  afterNodeAccess(p: HashMapNode<K, V>): void { }
+  afterNodeInsertion(evict: boolean): void { }
+  afterNodeRemoval(p: HashMapNode<K, V>): void { }
 }
 
+// TODO red-black tree
 class TreeNode<K, V> extends HashMapNode<K, V> {
   before: TreeNode<K, V>;
   after: TreeNode<K, V>;
@@ -165,5 +301,53 @@ class TreeNode<K, V> extends HashMapNode<K, V> {
       if ((p = r.parent) == null) return r;
       r = p;
     }
+  }
+
+  /**
+   * Ensures that the given root is the first node of its bin.
+   */
+  static moveRootToFront<K, V>(tab: HashMapNode<K, V>[], root: TreeNode<K, V>): void {
+    let n: number;
+    if (root != null && tab != null && (n = tab.length) > 0) {
+      const index: number = (n - 1) & root.hash;
+      const first: TreeNode<K,V> = tab[index] as TreeNode<K,V>;
+      if (root != first) {
+        let rn: HashMapNode<K, V>;
+        tab[index] = root;
+        const rp: TreeNode<K,V> = root.prev;
+        if ((rn = root.next) != null)
+          (rn as TreeNode<K,V>).prev = rp;
+        if (rp != null)
+          rp.next = rn;
+        if (first != null)
+          first.prev = root;
+        root.next = first;
+        root.prev = null;
+      }
+      if (!TreeNode.checkInvariants(root)) throw new Error("given root is not the first node of its bin");
+    }
+  }
+
+  /**
+   * Recursive invariant check
+   */
+  static checkInvariants<K, V>(t: TreeNode<K, V>): boolean {
+    const tp: TreeNode<K,V> = t.parent, tl: TreeNode<K,V> = t.left, tr: TreeNode<K,V> = t.right,
+      tb = t.prev, tn = t.next as TreeNode<K,V>;
+    if (tb != null && tb.next != t)
+      return false;
+    if (tn != null && tn.prev != t)
+      return false;
+    if (tp != null && t != tp.left && t != tp.right)
+      return false;
+    if (tl != null && (tl.parent != t || tl.hash > t.hash))
+      return false;
+    if (tr != null && (tr.parent != t || tr.hash < t.hash))
+      return false;
+    if (t.red && tl != null && tl.red && tr != null && tr.red)
+      return false;
+    if (tl != null && !TreeNode.checkInvariants(tl))
+      return false;
+    return !(tr != null && !TreeNode.checkInvariants(tr));
   }
 }
