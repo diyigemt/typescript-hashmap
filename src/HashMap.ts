@@ -306,6 +306,9 @@ export default class HashMap<K, V> {
     }
     this.threshold = newThr;
     const newTab = new Array<HashMapNode<K, V> | null>(newCap);
+    for (let i = 0; i < newCap; i++) {
+      newTab[i] = null;
+    }
     this.table = newTab;
     if (oldTab != null) {
       for (let j = 0; j < oldCap; ++j) {
