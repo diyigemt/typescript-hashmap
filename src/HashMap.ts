@@ -93,9 +93,10 @@ export default class HashMap<K, V> {
   // 初始容量 | rehash阈值
   private threshold = 16;
   // 负载因子
+
   private loadFactor = 0.75;
 
-  constructor(initialCapacity: number | null, loadFactor: number | null) {
+  constructor(initialCapacity: number | null, loadFactor: number | null, m: Map<K, V> | null) {
     if (initialCapacity !== null) {
       if (initialCapacity < 0) throw new IllegalArgumentException("Illegal initial capacity: ".concat(initialCapacity.toString()));
       if (initialCapacity > HashMap.MAXIMUM_CAPACITY) initialCapacity = HashMap.MAXIMUM_CAPACITY;
@@ -108,6 +109,9 @@ export default class HashMap<K, V> {
     this.size = 0;
     this.modCount = 0;
     this.table = null;
+    if (m !== null) {
+      this.putMap(m, false)
+    }
   };
 
   public getSize(): number {
@@ -156,8 +160,24 @@ export default class HashMap<K, V> {
     return this.putVal(HashMap.hash(key), key, value, false, true);
   }
 
-  public putMap(map: Map<K, V>) {
-
+  public putMap(m: Map<K, V>, evict: boolean): void {
+    const s = m.size;
+    if (s > 0) {
+      if (this.table == null) { // pre-size
+        const ft = (s / this.loadFactor) + 1.0;
+        const t = ((ft < HashMap.MAXIMUM_CAPACITY) ?
+          ft : HashMap.MAXIMUM_CAPACITY);
+        if (t > this.threshold)
+          this.threshold = HashMap.tableSizeFor(t);
+      }
+      else if (s > this.threshold)
+        this.resize();
+      for (const e of m) {
+        const key = e[0];
+        const value = e[1];
+        this.putVal(HashMap.hash(key), key, value, false, evict);
+      }
+    }
   }
 
   putVal(hash: number, key: K, value: V, onlyIfAbsent: boolean, evict: boolean): V | null {
@@ -175,7 +195,7 @@ export default class HashMap<K, V> {
         e = p;
       // else if (p instanceof TreeNode)
       //   e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
-    else {
+      else {
         for (let binCount: number = 0; ; ++binCount) {
           if ((e = p.next) == null) {
             p.next = this.newNode(hash, key, value, null);
@@ -235,9 +255,9 @@ export default class HashMap<K, V> {
     if (oldTab != null) {
       for (let j: number = 0; j < oldCap; ++j) {
         let e: HashMapNode<K, V> | null;
-        if ((e = oldTab[j]) != null) {
+        if ((e = oldTab[j]) !== null) {
           oldTab[j] = null;
-          if (e.next == null)
+          if (e.next === null)
             newTab[e.hash & (newCap - 1)] = e;
           // else if (e instanceof TreeNode)
           //   ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
@@ -248,21 +268,21 @@ export default class HashMap<K, V> {
             do {
               next = e.next;
               if ((e.hash & oldCap) == 0) {
-                if (loTail == null)
+                if (loTail === null)
                   loHead = e;
                 else
                   loTail.next = e;
                 loTail = e;
               }
               else {
-                if (hiTail == null)
+                if (hiTail === null)
                   hiHead = e;
                 else
                   hiTail.next = e;
                 hiTail = e;
               }
-            } while ((e = next) != null);
-            if (loTail != null) {
+            } while ((e = next) !== null);
+            if (loTail !== null) {
               loTail.next = null;
               newTab[j] = loHead;
             }
@@ -279,6 +299,162 @@ export default class HashMap<K, V> {
 
   newNode(hash: number, key: K, value: V, next: HashMapNode<K, V> | null): HashMapNode<K, V> {
     return new HashMapNode<K, V>(hash, key, value, next);
+  }
+
+  public putAll(m: Map<K, V>): void {
+    this.putMap(m, true);
+  }
+
+  public remove(key: Object, value: Object | null): V | null {
+    let e: HashMapNode<K, V> | null;
+    return (e = this.removeNode(HashMap.hash(key), key, value, false, true)) == null ? null : e.value;
+  }
+
+  removeNode(hash: number, key: Object, value: Object | null, matchValue: boolean, movable: boolean): HashMapNode<K, V> | null {
+    let tab: (HashMapNode<K, V> | null)[] | null; let p: HashMapNode<K, V> | null; let n: number, index: number;
+    if ((tab = this.table) !== null && (n = tab.length) > 0 &&
+      (p = tab[index = (n - 1) & hash]) !== null) {
+      let node: HashMapNode<K, V> | null = null, e: HashMapNode<K, V> | null;
+      let k: K;
+      let v: V;
+      if (p.hash === hash &&
+        ((k = p.key) === key || (key !== null && key === k)))
+        node = p;
+      else if ((e = p.next) !== null) {
+      //   if (p instanceof TreeNode)
+      //     node = ((TreeNode<K,V>)p).getTreeNode(hash, key);
+      // else {
+        do {
+          if (e.hash == hash &&
+            ((k = e.key) === key ||
+              (key !== null && key === k))) {
+            node = e;
+            break;
+          }
+          p = e;
+        } while ((e = e.next) !== null);
+        // }
+      }
+      if (node !== null && (!matchValue || (v = node.value) === value ||
+        (value !== null && value === v))) {
+      //   if (node instanceof TreeNode)
+      //     ((TreeNode<K,V>)node).removeTreeNode(this, tab, movable);
+      // else if (node == p)
+        if (node == p)
+          tab[index] = node.next;
+        else
+          p.next = node.next;
+        ++this.modCount;
+        --this.size;
+        this.afterNodeRemoval(node);
+        return node;
+      }
+    }
+    return null;
+  }
+
+  public clear(): void {
+    let tab: (HashMapNode<K, V> | null)[] | null;
+    this.modCount++;
+    if ((tab = this.table) !== null && this.size > 0) {
+      this.size = 0;
+      for (let i = 0; i < tab.length; ++i)
+      tab[i] = null;
+    }
+  }
+
+  public containsValue(value: Object): boolean {
+    let tab: (HashMapNode<K, V> | null)[] | null;
+    let v: V;
+    if ((tab = this.table) !== null && this.size > 0) {
+      for (let e of tab) {
+        for (; e !== null; e = e.next) {
+          if ((v = e.value) === value ||
+            (value !== null && value === v))
+            return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public getOrDefault(key: Object, defaultValue: V): V {
+    let e: HashMapNode<K, V> | null;
+    return (e = this.getNode(HashMap.hash(key), key)) === null ? defaultValue : e.value;
+  }
+
+  public putIfAbsent(key: K, value: V): V | null {
+    return this.putVal(HashMap.hash(key), key, value, true, true);
+  }
+
+  public values(): (V | null)[] {
+    const values: (V | null)[] = [];
+    if (this.table === null) return values;
+    for (const item of this.table) {
+      values.push(item === null ? null : item.value);
+    }
+    return values;
+  }
+
+  public keys(): (K | null)[] {
+    const keys: (K | null)[] = [];
+    if (this.table === null) return keys;
+    for (const item of this.table) {
+      keys.push(item === null ? null : item.key);
+    }
+    return keys;
+  }
+
+  public entries(): ([K, V] | null)[] {
+    const entries: ([K, V] | null)[] = [];
+    if (this.table === null) return entries;
+    for (const item of this.table) {
+      entries.push(item === null ? null : [item.key, item.value]);
+    }
+    return entries;
+  }
+
+  public forEach(func: Function) {
+    if (this.table === null) return;
+    for (const item of this.table) {
+      func.call(item);
+    }
+  }
+
+  public clone(): HashMap<K, V> {
+    const res = new HashMap<K, V>(null, null, null);
+    res.putMap(this.map(), false);
+    return res;
+  }
+
+  public map(): Map<K, V> {
+    const map = new Map<K, V>();
+    if (this.table === null) return map;
+    for (const item of this.table) {
+      map.set(item!.key, item!.value);
+    }
+    return map;
+  }
+
+  public replace(key: K, ...values: V[]): V | null {
+    let e = this.getNode(HashMap.hash(key), key);
+    let v: V;
+    if (values.length === 1) {
+      if (e !== null) {
+        const oldValue = e.value;
+        e.value = values[0];
+        this.afterNodeAccess(e);
+        return oldValue;
+      }
+    } else if (values.length === 2) {
+      const oldValue = values[1];
+      if (e !== null && ((v = e.value) === oldValue || (v !== null && v === oldValue))) {
+        e.value = values[0];
+        this.afterNodeAccess(e);
+        return oldValue;
+      }
+    }
+    return null;
   }
 
   // Callbacks to allow LinkedHashMap post-actions
@@ -320,18 +496,18 @@ class TreeNode<K, V> extends HashMapNode<K, V> {
    */
   static moveRootToFront<K, V>(tab: HashMapNode<K, V>[], root: TreeNode<K, V>): void {
     let n: number;
-    if (root != null && tab != null && (n = tab.length) > 0) {
+    if (root !== null && tab !== null && (n = tab.length) > 0) {
       const index: number = (n - 1) & root.hash;
       const first: TreeNode<K,V> = tab[index] as TreeNode<K,V>;
-      if (root != first) {
+      if (root !== first) {
         let rn: HashMapNode<K, V> | null;
         tab[index] = root;
         const rp = root.prev;
-        if ((rn = root.next) != null)
+        if ((rn = root.next) !== null)
           (rn as TreeNode<K,V>).prev = rp;
-        if (rp != null)
+        if (rp !== null)
           rp.next = rn;
-        if (first != null)
+        if (first !== null)
           first.prev = root;
         root.next = first;
         root.prev = null;
@@ -346,20 +522,20 @@ class TreeNode<K, V> extends HashMapNode<K, V> {
   static checkInvariants<K, V>(t: TreeNode<K, V>): boolean {
     const tp = t.parent, tl = t.left, tr = t.right,
       tb = t.prev, tn = t.next as TreeNode<K,V>;
-    if (tb != null && tb.next != t)
+    if (tb !== null && tb.next !== t)
       return false;
-    if (tn != null && tn.prev != t)
+    if (tn !== null && tn.prev !== t)
       return false;
-    if (tp != null && t != tp.left && t != tp.right)
+    if (tp !== null && t !== tp.left && t !== tp.right)
       return false;
-    if (tl != null && (tl.parent != t || tl.hash > t.hash))
+    if (tl !== null && (tl.parent !== t || tl.hash > t.hash))
       return false;
-    if (tr != null && (tr.parent != t || tr.hash < t.hash))
+    if (tr !== null && (tr.parent !== t || tr.hash < t.hash))
       return false;
-    if (t.red && tl != null && tl.red && tr != null && tr.red)
+    if (t.red && tl !== null && tl.red && tr !== null && tr.red)
       return false;
-    if (tl != null && !TreeNode.checkInvariants(tl))
+    if (tl !== null && !TreeNode.checkInvariants(tl))
       return false;
-    return !(tr != null && !TreeNode.checkInvariants(tr));
+    return !(tr !== null && !TreeNode.checkInvariants(tr));
   }
 }
