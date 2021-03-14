@@ -1,7 +1,20 @@
-import list from "./LinkedList";
+// import list from "./LinkedList";
+//
+// interface LinkedListConstructor {
+//   new <E>(): list<E>;
+// }
+//
+// declare let LinkedList: LinkedListConstructor;
 
-interface LinkedLiskConstructor {
-  new<E>(): list<E>
+interface HashMap<K, V> {
+  getSize(): number;
 }
 
-declare var LinkedList: LinkedLiskConstructor
+interface HashMapConstructor {
+  new (): HashMap<any, any>;
+  new <K, V>(): HashMap<K, V>;
+}
+
+declare let HashMap: HashMapConstructor;
+
+export default HashMap
