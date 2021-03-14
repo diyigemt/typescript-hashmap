@@ -514,7 +514,8 @@ export default class HashMap<K, V> {
     const map = new Map<K, V>();
     if (this.table === null) return map;
     for (const item of this.table) {
-      map.set(item!.key, item!.value);
+      if (item === null) continue;
+      map.set(item.key, item.value);
     }
     return map;
   }
@@ -543,6 +544,9 @@ export default class HashMap<K, V> {
     return null;
   }
 
+  public getModCount(): number {
+    return this.modCount;
+  }
   // Callbacks to allow LinkedHashMap post-actions
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   afterNodeAccess(p: HashMapNode<K, V>): void {}
