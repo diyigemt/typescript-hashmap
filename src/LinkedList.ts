@@ -1,10 +1,10 @@
 class LinkedLiskNode<E> {
 
-	item: E;
-	next: LinkedLiskNode<E>;
-	prev: LinkedLiskNode<E>;
+	item: E | null;
+	next: LinkedLiskNode<E>| null;
+	prev: LinkedLiskNode<E>| null;
 
-	constructor(prev: LinkedLiskNode<E>, element: E, next: LinkedLiskNode<E>) {
+	constructor(prev: LinkedLiskNode<E> | null, element: E, next: LinkedLiskNode<E> | null) {
 		this.item = element;
 		this.next = next;
 		this.prev = prev;
@@ -14,12 +14,14 @@ class LinkedLiskNode<E> {
 export default class LinkedList<E> {
 	modCount: number; // 最后一次结构改变的次数
 	size: number;
-	first: LinkedLiskNode<E>;
-	last: LinkedLiskNode<E>;
+	first: LinkedLiskNode<E> | null;
+	last: LinkedLiskNode<E> | null;
 
 	constructor() {
 		this.modCount = 0;
 		this.size = 0;
+		this.first = null;
+		this.last = null;
 	}
 
 	getModCount(): number {
@@ -28,7 +30,7 @@ export default class LinkedList<E> {
 
 	// 插入头部
 	private linkFirst(e: E): void {
-		const f: LinkedLiskNode<E> = this.first;
+		const f = this.first;
 		const newNode: LinkedLiskNode<E> = new LinkedLiskNode<E>(null, e, f);
 		this.first = newNode;
 		if (f == null) {
@@ -42,7 +44,7 @@ export default class LinkedList<E> {
 
 	//插入尾部
 	public linkLast(e: E): void {
-		const l: LinkedLiskNode<E> = this.last;
+		const l = this.last;
 		const newNode: LinkedLiskNode<E> = new LinkedLiskNode<E>(l, e, null);
 		this.last = newNode;
 		if (l == null) {
@@ -56,8 +58,8 @@ export default class LinkedList<E> {
 
 	//插入某个节点之前
 	linkBefore(e: E, succ: LinkedLiskNode<E>): void {
-		const pred: LinkedLiskNode<E> = succ.prev;
-		const newNode: LinkedLiskNode<E> = new LinkedLiskNode<E>(pred, e, succ);
+		const pred = succ.prev;
+		const newNode = new LinkedLiskNode<E>(pred, e, succ);
 		succ.prev = newNode;
 		if (pred === null) {
 			this.first = newNode;
@@ -69,9 +71,9 @@ export default class LinkedList<E> {
 	}
 
 	//移除非空头节点
-	private unlinkFirst(f: LinkedLiskNode<E>): E {
-		const element: E = f.item;
-		const next: LinkedLiskNode<E> = f.next;
+	private unlinkFirst(f: LinkedLiskNode<E>): E | null {
+		const element = f.item;
+		const next = f.next;
 		f.item = null;
 		f.next = null;
 		this.first = next;
@@ -86,9 +88,9 @@ export default class LinkedList<E> {
 	}
 
 	//移除非空尾节点
-	private unlinkLast(l: LinkedLiskNode<E>): E {
-		const element: E = l.item;
-		const prev: LinkedLiskNode<E> = l.prev;
+	private unlinkLast(l: LinkedLiskNode<E>): E | null {
+		const element = l.item;
+		const prev = l.prev;
 		l.item = null;
 		l.prev = null;
 		this.last = prev;
@@ -103,10 +105,10 @@ export default class LinkedList<E> {
 	}
 
 	//移除非空节点
-	unlink(x: LinkedLiskNode<E>): E {
-		const element: E = x.item;
-		const next: LinkedLiskNode<E> = x.next;
-		const prev: LinkedLiskNode<E> = x.prev;
+	unlink(x: LinkedLiskNode<E>): E | null {
+		const element = x.item;
+		const next = x.next;
+		const prev = x.prev;
 
 		if (prev === null) {
 			this.first = next;
@@ -128,29 +130,29 @@ export default class LinkedList<E> {
 	}
 
 	//获取头节点
-	public getFirst(): E {
-		const f: LinkedLiskNode<E> = this.first;
+	public getFirst(): E | null {
+		const f = this.first;
 		if (f === null) throw new ReferenceError("first node is null !");
 		return f.item;
 	}
 
 	//获取尾节点
-	public getLast(): E {
-		const l: LinkedLiskNode<E> = this.last;
+	public getLast(): E | null {
+		const l = this.last;
 		if (l === null) throw new ReferenceError("last node is null !");
 		return l.item;
 	}
 
 	//删除头节点
-	public removeFirst(): E {
-		const f: LinkedLiskNode<E> = this.first;
+	public removeFirst(): E | null {
+		const f = this.first;
 		if (f === null) throw new ReferenceError("first node is null !");
 		return this.unlinkFirst(f);
 	}
 
 	//删除尾节点
-	public removeLast(): E {
-		const l: LinkedLiskNode<E> = this.last;
+	public removeLast(): E | null {
+		const l = this.last;
 		if (l === null) throw new ReferenceError("last node is null !");
 		return this.unlinkLast(l);
 	}
@@ -166,7 +168,7 @@ export default class LinkedList<E> {
 	}
 
 	//是否包含
-	public contains(o: Object) {
+	public contains(o: Object): boolean {
 		return this.indexOf(o) >= 0;
 	}
 
@@ -198,13 +200,13 @@ export default class LinkedList<E> {
 			return this.unlink(this.node(index));
 		}
 		if (o === null) {
-			for (let x: LinkedLiskNode<E> = this.first; x !== null; x = x.next) {
+			for (let x = this.first; x !== null; x = x.next) {
 				if (x.item === null) {
 					return this.unlink(x);
 				}
 			}
 		} else {
-			for (let x: LinkedLiskNode<E> = this.first; x !== null; x = x.next) {
+			for (let x = this.first; x !== null; x = x.next) {
 				if (o === x.item) {
 					return this.unlink(x);
 				}
@@ -221,7 +223,7 @@ export default class LinkedList<E> {
 		const numNew: number = a.length;
 		if (numNew === 0) return false;
 
-		let pred, succ: LinkedLiskNode<E>;
+		let pred: LinkedLiskNode<E> | null, succ: LinkedLiskNode<E> | null;
 		if (index === this.size) {
 			succ = null;
 			pred = this.last;
@@ -239,12 +241,13 @@ export default class LinkedList<E> {
 				pred.next = newNode;
 			}
 		}
+		return true;
 	}
 
 	//清除所有节点
 	public clear(): void {
-		for (let x: LinkedLiskNode<E>; x !== null;) {
-			const next: LinkedLiskNode<E> = x.next;
+		for (let x: LinkedLiskNode<E> | null = null; x !== null;) {
+			const next: LinkedLiskNode<E> = x.next as LinkedLiskNode<E>;
 			x.item = null;
       x.next = null;
       x.prev = null;
@@ -258,14 +261,14 @@ export default class LinkedList<E> {
 	//获取一个节点
 	public get(index: number): E {
 		this.checkElementIndex(index);
-		return this.node(index).item;
+		return this.node(index).item as E;
 	}
 
 	//替换一个节点
 	public set(index: number, element: E): E {
 		this.checkElementIndex(index);
 		const x: LinkedLiskNode<E> = this.node(index);
-		const oldVal: E = x.item;
+		const oldVal: E = x.item as E;
 		x.item = element;
 		return oldVal;
 	}
@@ -298,31 +301,31 @@ export default class LinkedList<E> {
 	//根据节点index获取内容
 	node(index: number): LinkedLiskNode<E> {
 		if (index < (this.size >> 1)) {
-			let x: LinkedLiskNode<E> = this.first;
+			let x: LinkedLiskNode<E> = this.first as LinkedLiskNode<E>;
 			for (let i = 0; i < index; i++)
-					x = x.next;
+					x = x.next as LinkedLiskNode<E>;
 			return x;
 		} else {
-			let x: LinkedLiskNode<E> = this.last;
+			let x: LinkedLiskNode<E> = this.last as LinkedLiskNode<E>;
 				for (let i = this.size - 1; i > index; i--)
-						x = x.prev;
+						x = x.prev as LinkedLiskNode<E>;
 				return x;
 		}
 	}
 
-	
+
 	//获取一个节点的位置
 	public indexOf(o: Object): number {
 		let index: number = 0;
 		if (o === null) {
-			for (let x: LinkedLiskNode<E> = this.first; x !== null; x = x.next) {
+			for (let x: LinkedLiskNode<E> = this.first as LinkedLiskNode<E>; x !== null; x = x.next as LinkedLiskNode<E>) {
 				if (x.item === null) {
 					return index;
 				}
 				index++;
 			}
 		} else {
-			for (let x: LinkedLiskNode<E> = this.first; x !== null; x = x.next) {
+			for (let x: LinkedLiskNode<E> = this.first as LinkedLiskNode<E>; x !== null; x = x.next as LinkedLiskNode<E>) {
 				if (o === x.item) {
 					return index;
 				}
@@ -336,14 +339,14 @@ export default class LinkedList<E> {
 	public lastIndexOf(o: Object): number {
 		let index: number = this.size;
 		if (o == null) {
-			for (let x: LinkedLiskNode<E> = this.last; x !== null; x = x.prev) {
+			for (let x: LinkedLiskNode<E> = this.last as LinkedLiskNode<E>; x !== null; x = x.prev as LinkedLiskNode<E>) {
 				index--;
 				if (x.item == null) {
 					return index;
 				}
 			}
 		} else {
-			for (let x: LinkedLiskNode<E> = this.first; x !== null; x = x.prev) {
+			for (let x: LinkedLiskNode<E> = this.first as LinkedLiskNode<E>; x !== null; x = x.prev as LinkedLiskNode<E>) {
 				index--;
 				if (o === x.item) {
 					return index;
@@ -355,18 +358,18 @@ export default class LinkedList<E> {
 
 	//获取头节点内容
 	public peek(): E | null {
-		const f: LinkedLiskNode<E> = this.first;
+		const f = this.first;
 		return (f === null) ? null : f.item;
 	}
 
 	//获取头节点内容 抛出异常
-	public element(): E {
+	public element(): E | null {
 		return this.getFirst();
 	}
 
 	//获取头节点 并移除头节点
 	public poll(): E | null {
-		const f: LinkedLiskNode<E> = this.first;
+		const f = this.first;
 		return (f === null) ? null : this.unlinkFirst(f);
 	}
 
@@ -389,25 +392,25 @@ export default class LinkedList<E> {
 
 	//获取头节点内容
 	public peekFirst(): E | null {
-		const f: LinkedLiskNode<E> = this.first;
+		const f = this.first;
 		return (f === null) ? null : f.item;
 	}
 
 	//获取尾节点内容
 	public peekLast(): E | null {
-		const l: LinkedLiskNode<E> = this.last;
+		const l = this.last;
 		return (l === null) ? null : l.item;
 	}
 
 	//获取头节点 并移除头节点
 	public pollFirst(): E | null {
-		const f: LinkedLiskNode<E> = this.first;
+		const f = this.first;
 		return (f === null) ? null : this.unlinkFirst(f);
 	}
 
 	//获取尾节点 并移除尾节点
 	public pollLast(): E | null {
-		const l: LinkedLiskNode<E> = this.last;
+		const l = this.last;
 		return (l === null) ? null : this.unlinkLast(l);
 	}
 
@@ -415,9 +418,9 @@ export default class LinkedList<E> {
 	public push(e: E): void {
 		this.addFirst(e);
 	}
-	
+
 	//弹出头节点
-	public pop(): E {
+	public pop(): E | null {
 		return this.removeFirst();
 	}
 
@@ -429,13 +432,13 @@ export default class LinkedList<E> {
 	//从尾开始 移除最先出现的目标对象
 	public removeLastOccurrence(o: Object): E | null {
 		if (o == null) {
-			for (let x: LinkedLiskNode<E> = this.last; x !== null; x = x.prev) {
+			for (let x = this.last; x !== null; x = x.prev) {
 				if (x.item == null) {
 					return this.unlink(x);
 				}
 			}
 		} else {
-			for (let x: LinkedLiskNode<E> = this.last; x !== null; x = x.prev) {
+			for (let x = this.last; x !== null; x = x.prev) {
 				if (o === x.item) {
 					return this.unlink(x);
 				}
@@ -446,14 +449,14 @@ export default class LinkedList<E> {
 
 	//克隆
 	public clone(): Object {
-		const clone: LinkedList<E>  = new LinkedList<E>();
+		const clone = new LinkedList<E>();
 
 		clone.first = clone.last = null;
 		clone.size = 0;
 		clone.modCount = 0;
-		
-		for(let x: LinkedLiskNode<E> = this.first; x !== null; x = x.next) {
-			clone.add(x.item, null);
+
+		for(let x = this.first; x !== null; x = x.next) {
+			clone.add(x.item as E, null);
 		}
 		return clone;
 	}
@@ -467,12 +470,14 @@ export default class LinkedList<E> {
 class ListItr<E> {
 	private list: LinkedList<E>;
 
-	private lastReturned: LinkedLiskNode<E>;
-	private nextItem: LinkedLiskNode<E>;
+	private lastReturned: LinkedLiskNode<E> | null;
+	private nextItem: LinkedLiskNode<E> | null;
 	private nextIndex: number;
 	private expectedModCount;
 
 	constructor(index: number, list: LinkedList<E>) {
+		this.expectedModCount = 0;
+		this.lastReturned = null;
 		this.nextIndex = index;
 		this.list = list;
 		this.nextItem = (index === this.list.getSize()) ? null : this.list.node(index);
@@ -487,39 +492,39 @@ class ListItr<E> {
 		if (!this.hasNext()) throw new RangeError("no next element");
 
 		this.lastReturned = this.nextItem;
-		this.nextItem = this.nextItem.next;
+		this.nextItem = (this.nextItem as LinkedLiskNode<E>).next;
 		this.nextIndex++;
-		return this.lastReturned.item;
+		return (this.lastReturned as LinkedLiskNode<E>).item as E;
 	}
 
 	public hasPrevious(): boolean {
 		return this.nextIndex > 0;
 	}
 
-	public previous(): E {
+	public previous(): E | null {
 		this.checkForComodification();
 		if(!this.hasPrevious()) throw new RangeError("no previous element");
 
-		this.lastReturned = this.nextItem = (this.nextIndex === null) ? this.list.last : this.nextItem.prev;
+		this.lastReturned = this.nextItem = (this.nextIndex === null) ? this.list.last : (this.nextItem as LinkedLiskNode<E>).prev;
 		this.nextIndex--;
-		return this.lastReturned.item;
+		return (this.lastReturned as LinkedLiskNode<E>).item;
 	}
 
 	public getLastIndex(): number {
 		return this.nextIndex;
 	}
 
-	public getpreviousIndex(): number {
+	public getPreviousIndex(): number {
 		return this.nextIndex - 1;
 	}
 
-	public remove() {
+	public remove(): void {
 		this.checkForComodification();
 		if (this.lastReturned === null) {
 			throw new Error("IllegalStateException, cannot remove, last return is null");
 		}
 
-		const lastNext: LinkedLiskNode<E> = this.lastReturned.next;
+		const lastNext = this.lastReturned.next;
 		this.list.unlink(this.lastReturned);
 		if (this.nextItem === this.lastReturned) {
 			this.nextItem = lastNext;
